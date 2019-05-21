@@ -33,6 +33,7 @@ function saveRequest(options) {
 
 describe('A FixedServer with a single fixture', function () {
   var fixedServer = new FixedServer(serverOptions);
+  var _server;
   fixedServer.addFixture('GET 200 /hello', {
     method: 'get',
     route: '/hello',
@@ -40,7 +41,15 @@ describe('A FixedServer with a single fixture', function () {
       res.send('world');
     }
   });
-  fixedServer.run('GET 200 /hello');
+
+  before(function() {
+    _server = fixedServer.createServer('GET 200 /hello');
+    _server.listen();
+  });
+  after(function() {
+    return _server.destroy();
+  });
+
   saveRequest(getUrl('/hello'));
 
   it('replies to the loaded route', function () {
@@ -52,6 +61,7 @@ describe('A FixedServer with a single fixture', function () {
 
 describe('A FixedServer with multiple fixtures', function () {
   var fixedServer = new FixedServer(serverOptions);
+  var _server;
   fixedServer.addFixtures({
     'GET 200 /waffle': {
       method: 'get',
@@ -68,10 +78,18 @@ describe('A FixedServer with multiple fixtures', function () {
       }
     }
   });
-  fixedServer.run([
-    'GET 200 /waffle',
-    'POST 500 /auth'
-  ]);
+
+  before(function() {
+    _server = fixedServer.createServer([
+      'GET 200 /waffle',
+      'POST 500 /auth'
+    ]);
+    _server.listen();
+  });
+  after(function() {
+    return _server.destroy();
+  });
+
   saveRequest({
     method: 'POST',
     url: getUrl('/auth')
@@ -87,9 +105,18 @@ describe('A FixedServer with multiple fixtures', function () {
 describe('A FixedServer loaded from a file', function () {
   var fixedServer = FixedServer.fromFile(__dirname + '/test-files/fixtures.js',
                                          serverOptions);
-  fixedServer.run([
-    'GET 200 /trips#full'
-  ]);
+  var _server;
+
+  before(function() {
+    _server = fixedServer.createServer([
+      'GET 200 /trips#full'
+    ]);
+    _server.listen();
+  });
+  after(function() {
+    return _server.destroy();
+  });
+
   saveRequest({
     method: 'GET',
     url: getUrl('/trips')
@@ -104,10 +131,28 @@ describe('A FixedServer loaded from a file', function () {
 
 // DEV: Regression test for https://github.com/uber/fixed-server/issues/2
 describe('Multiple FixedServers run in the same test', function () {
-  (new FixedServer(serverOptions)).run();
-  (new FixedServer(extend({}, serverOptions, {port: 1338}))).run();
+  (new FixedServer(serverOptions)).createServer();
+  (new FixedServer(extend({}, serverOptions, {port: 1338}))).createServer();
 
   it('do not conflict while shutting down', function () {
     // DEV: This is automatic since the regression was in the mocha helpers
+  });
+});
+
+describe('A FixedServer loaded from a file', function () {
+  var fixedServer = FixedServer.fromFile(__dirname + '/test-files/fixtures.js',
+    serverOptions);
+  var _server;
+
+  before(function() {
+    _server = fixedServer.createServer([
+      'GET 200 /trips#full'
+    ]);
+    _server.listen();
+  });
+  
+  it('should return promise on call to .destroy()', function () {
+    var result = _server.destroy();
+    expect(typeof result.then).to.equal('function');
   });
 });

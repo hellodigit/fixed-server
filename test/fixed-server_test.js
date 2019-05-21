@@ -138,3 +138,21 @@ describe('Multiple FixedServers run in the same test', function () {
     // DEV: This is automatic since the regression was in the mocha helpers
   });
 });
+
+describe('A FixedServer loaded from a file', function () {
+  var fixedServer = FixedServer.fromFile(__dirname + '/test-files/fixtures.js',
+    serverOptions);
+  var _server;
+
+  before(function() {
+    _server = fixedServer.createServer([
+      'GET 200 /trips#full'
+    ]);
+    _server.listen();
+  });
+  
+  it('should return promise on call to .destroy()', function () {
+    var result = _server.destroy();
+    expect(typeof result.then).to.equal('function');
+  });
+});

@@ -47,7 +47,7 @@ describe('A FixedServer with a single fixture', function () {
     _server.listen();
   });
   after(function() {
-    _server.destroy();
+    return _server.destroy();
   });
 
   saveRequest(getUrl('/hello'));
